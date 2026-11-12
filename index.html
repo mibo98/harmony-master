@@ -797,21 +797,37 @@
                 const context = renderer.getContext();
                 const stave = new VF.Stave(0, 0, 310); // 오선지 너비를 310px로 축소
                 stave.addClef("treble").setContext(context).draw();
+
                 let rootMidi = 60 + ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'].indexOf(q.root);
                 let notes = [rootMidi];
                 q.pattern.forEach(p => notes.push(notes[notes.length - 1] + p));
                 q.midiNotes = notes;
 
+                // --- 여기서부터 변경된 플랫/샵 지능형 표기 로직 ---
+                const isMinorFeel = q.type.includes('minor') || ['aeolian', 'dorian', 'phrygian', 'locrian'].includes(q.type);
+                const isFlatKey = q.root.includes('b') || q.root === 'F' || 
+                                  (['C', 'G', 'D'].includes(q.root) && isMinorFeel);
+                                  
+                const pcNames = isFlatKey 
+                    ? ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
+                    : ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+
                 const vfNotes = notes.map(midi => {
                     const octave = Math.floor(midi / 12) - 1;
                     const pc = midi % 12;
-                    const pcNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
                     let name = pcNames[pc];
-                    let acc = name.length > 1 ? '#' : '';
+                    let acc = name.length > 1 ? name.charAt(1) : '';
                     let note = new VF.StaveNote({ keys: [`${name.charAt(0)}/${octave}`], duration: "q" });
                     if (acc) note.addModifier(new VF.Accidental(acc));
                     return note;
                 });
+                // --- 변경 로직 끝 ---
+
+                const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 });
+                voice.addTickables(vfNotes);
+                new VF.Formatter().joinVoices([voice]).format([voice], 270);
+                voice.draw(context, stave);
+            },
 
                const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 });
                 voice.addTickables(vfNotes);
@@ -982,10 +998,33 @@
             checkScaleAnswer: () => {
                 const q = currentQuestions[currentIndex];
                 const selectType = document.getElementById('select-scale-type');
-                let error = false;
-                if(selectType.value !== q.type) {
-                    selectType.classList.remove('input-error'); void selectType.offsetWidth; selectType.classList.add('input-error'); error = true;
-                } else selectType.classList.remove('input-error');
+                
+                const selected = selectType.value;
+                const correct = q.type;
+                
+                // 기본 정답 체크
+                let isCorrect = (selected === correct);
+                
+                // 동의어(Synonyms) 예외 처리
+                if (!isCorrect) {
+                    if ((selected === 'aeolian' && correct === 'natural minor') ||
+                        (selected === 'natural minor' && correct === 'aeolian') ||
+                        (selected === 'ionian' && correct === 'major') ||
+                        (selected === 'major' && correct === 'ionian')) {
+                        isCorrect = true;
+                    }
+                }
+                
+                let error = !isCorrect;
+                
+                if(error) {
+                    selectType.classList.remove('input-error'); 
+                    void selectType.offsetWidth; 
+                    selectType.classList.add('input-error');
+                } else {
+                    selectType.classList.remove('input-error');
+                }
+                
                 gameLogic.handleCheckResult('scale', error);
             },
 
