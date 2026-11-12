@@ -193,12 +193,12 @@
                 <div class="text-sm font-semibold text-gray-500">문제 <span id="scale-progress" class="text-blue-600">1/10</span></div>
                 <div class="font-mono text-lg font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-lg"><i class="fa-regular fa-clock mr-1 text-gray-500"></i><span id="scale-timer">00:00.0</span></div>
             </div>
-            <div class="relative bg-white rounded-xl mb-4 flex justify-center border border-gray-100 shadow-inner h-32 overflow-hidden">
-                <div id="scale-notation-canvas" class="w-[600px] absolute left-1/2 transform -translate-x-1/2"></div>
-                <button id="btn-play-scale" class="absolute top-2 right-2 w-8 h-8 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 flex items-center justify-center transition-colors">
-                    <i class="fa-solid fa-volume-high"></i>
-                </button>
-            </div>
+            <div class="relative bg-white rounded-xl mb-4 flex justify-center items-center border border-gray-100 shadow-inner h-32">
+    <div id="scale-notation-canvas" class="w-full flex justify-center"></div>
+    <button id="btn-play-scale" class="absolute top-2 right-2 w-8 h-8 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 flex items-center justify-center transition-colors z-10">
+        <i class="fa-solid fa-volume-high"></i>
+    </button>
+</div>
             
             <div class="text-center mb-4">
                 <p class="text-sm text-gray-500 font-medium">시작음 (Root): <span id="scale-root-display" class="text-blue-600 font-bold text-lg">C</span></p>
@@ -793,11 +793,10 @@
                 const container = document.getElementById("scale-notation-canvas");
                 container.innerHTML = "";
                 const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-                renderer.resize(600, 100);
+                renderer.resize(320, 100); // 캔버스 너비를 320px로 축소
                 const context = renderer.getContext();
-                const stave = new VF.Stave(10, 0, 580);
+                const stave = new VF.Stave(0, 0, 310); // 오선지 너비를 310px로 축소
                 stave.addClef("treble").setContext(context).draw();
-
                 let rootMidi = 60 + ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'].indexOf(q.root);
                 let notes = [rootMidi];
                 q.pattern.forEach(p => notes.push(notes[notes.length - 1] + p));
@@ -814,9 +813,9 @@
                     return note;
                 });
 
-                const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 });
+               const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 });
                 voice.addTickables(vfNotes);
-                new VF.Formatter().joinVoices([voice]).format([voice], 500);
+                new VF.Formatter().joinVoices([voice]).format([voice], 270); // 음표 간격 축소
                 voice.draw(context, stave);
             },
 
