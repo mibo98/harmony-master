@@ -21,7 +21,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
         
-        /* View transitions - !important is critical to override flex */
+        /* View transitions */
         .view-section { display: none !important; }
         .view-section.active { display: flex !important; animation: fadeIn 0.3s ease-in-out; }
 
@@ -194,11 +194,11 @@
                 <div class="font-mono text-lg font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-lg"><i class="fa-regular fa-clock mr-1 text-gray-500"></i><span id="scale-timer">00:00.0</span></div>
             </div>
             <div class="relative bg-white rounded-xl mb-4 flex justify-center items-center border border-gray-100 shadow-inner h-32">
-    <div id="scale-notation-canvas" class="w-full flex justify-center"></div>
-    <button id="btn-play-scale" class="absolute top-2 right-2 w-8 h-8 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 flex items-center justify-center transition-colors z-10">
-        <i class="fa-solid fa-volume-high"></i>
-    </button>
-</div>
+                <div id="scale-notation-canvas" class="w-full flex justify-center"></div>
+                <button id="btn-play-scale" class="absolute top-2 right-2 w-8 h-8 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 flex items-center justify-center transition-colors z-10">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
             
             <div class="text-center mb-4">
                 <p class="text-sm text-gray-500 font-medium">시작음 (Root): <span id="scale-root-display" class="text-blue-600 font-bold text-lg">C</span></p>
@@ -389,15 +389,14 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ★ 여기에 1단계에서 복사했던 firebaseConfig의 내용을 덮어써주세요!
         const firebaseConfig = {
-  apiKey: "AIzaSyD1TWJcHhNFRuCxRkky9TsTo8wJwWVwdDI",
-  authDomain: "harmony-master-a6fd4.firebaseapp.com",
-  projectId: "harmony-master-a6fd4",
-  storageBucket: "harmony-master-a6fd4.firebasestorage.app",
-  messagingSenderId: "725152645944",
-  appId: "1:725152645944:web:e9f2f1bbb7d7f6cf30f7cd"
-};
+            apiKey: "AIzaSyD1TWJcHhNFRuCxRkky9TsTo8wJwWVwdDI",
+            authDomain: "harmony-master-a6fd4.firebaseapp.com",
+            projectId: "harmony-master-a6fd4",
+            storageBucket: "harmony-master-a6fd4.firebasestorage.app",
+            messagingSenderId: "725152645944",
+            appId: "1:725152645944:web:e9f2f1bbb7d7f6cf30f7cd"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -793,9 +792,9 @@
                 const container = document.getElementById("scale-notation-canvas");
                 container.innerHTML = "";
                 const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
-                renderer.resize(320, 100); // 캔버스 너비를 320px로 축소
+                renderer.resize(320, 100);
                 const context = renderer.getContext();
-                const stave = new VF.Stave(0, 0, 310); // 오선지 너비를 310px로 축소
+                const stave = new VF.Stave(0, 0, 310);
                 stave.addClef("treble").setContext(context).draw();
 
                 let rootMidi = 60 + ['C','C#','D','Eb','E','F','F#','G','Ab','A','Bb','B'].indexOf(q.root);
@@ -803,7 +802,7 @@
                 q.pattern.forEach(p => notes.push(notes[notes.length - 1] + p));
                 q.midiNotes = notes;
 
-                // --- 여기서부터 변경된 플랫/샵 지능형 표기 로직 ---
+                // 지능형 플랫/샵 표기 로직
                 const isMinorFeel = q.type.includes('minor') || ['aeolian', 'dorian', 'phrygian', 'locrian'].includes(q.type);
                 const isFlatKey = q.root.includes('b') || q.root === 'F' || 
                                   (['C', 'G', 'D'].includes(q.root) && isMinorFeel);
@@ -821,17 +820,10 @@
                     if (acc) note.addModifier(new VF.Accidental(acc));
                     return note;
                 });
-                // --- 변경 로직 끝 ---
 
                 const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 });
                 voice.addTickables(vfNotes);
                 new VF.Formatter().joinVoices([voice]).format([voice], 270);
-                voice.draw(context, stave);
-            },
-
-               const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 });
-                voice.addTickables(vfNotes);
-                new VF.Formatter().joinVoices([voice]).format([voice], 270); // 음표 간격 축소
                 voice.draw(context, stave);
             },
 
@@ -1002,10 +994,8 @@
                 const selected = selectType.value;
                 const correct = q.type;
                 
-                // 기본 정답 체크
                 let isCorrect = (selected === correct);
                 
-                // 동의어(Synonyms) 예외 처리
                 if (!isCorrect) {
                     if ((selected === 'aeolian' && correct === 'natural minor') ||
                         (selected === 'natural minor' && correct === 'aeolian') ||
