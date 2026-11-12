@@ -802,24 +802,44 @@
                 q.pattern.forEach(p => notes.push(notes[notes.length - 1] + p));
                 q.midiNotes = notes;
 
-                // 지능형 플랫/샵 표기 로직
-                const isMinorFeel = q.type.includes('minor') || ['aeolian', 'dorian', 'phrygian', 'locrian'].includes(q.type);
-                const isFlatKey = q.root.includes('b') || q.root === 'F' || 
-                                  (['C', 'G', 'D'].includes(q.root) && isMinorFeel);
-                                  
-                const pcNames = isFlatKey 
-                    ? ['c','db','d','eb','e','f','gb','g','ab','a','bb','b']
-                    : ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+                // --- 🌟 새롭게 추가되는 '정통 화성학' 음표 표기 로직 ---
+                const rootLetter = q.root.charAt(0).toLowerCase();
+                const baseLetters = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
+                const baseValues = { 'c': 0, 'd': 2, 'e': 4, 'f': 5, 'g': 7, 'a': 9, 'b': 11 };
+                const rootBaseIdx = baseLetters.indexOf(rootLetter);
 
-                const vfNotes = notes.map(midi => {
-                    const octave = Math.floor(midi / 12) - 1;
-                    const pc = midi % 12;
-                    let name = pcNames[pc];
-                    let acc = name.length > 1 ? name.charAt(1) : '';
-                    let note = new VF.StaveNote({ keys: [`${name.charAt(0)}/${octave}`], duration: "q" });
+                // 스케일 종류에 따른 고유 도수(Degree) 배열 (7음계 vs 5음계 펜타토닉)
+                let degreePattern = [0, 1, 2, 3, 4, 5, 6, 7]; 
+                if (q.type === 'major pentatonic') degreePattern = [0, 1, 2, 4, 5, 7];
+                else if (q.type === 'minor pentatonic') degreePattern = [0, 2, 3, 4, 6, 7];
+
+                const vfNotes = notes.map((midi, i) => {
+                    const expectedDegree = degreePattern[i];
+                    const letterIdx = (rootBaseIdx + expectedDegree) % 7;
+                    const letterName = baseLetters[letterIdx];
+                    
+                    const targetPc = midi % 12;
+                    const basePc = baseValues[letterName];
+                    
+                    // 해당 알파벳의 기본 건반 위치(basePc)와 목표 위치(targetPc)의 차이를 계산하여 임시표 결정
+                    let diff = targetPc - basePc;
+                    if (diff > 6) diff -= 12;  // C에서 Bbb 등 극단적 조표 보정
+                    if (diff < -6) diff += 12; // B에서 C# 등 옥타브 경계 보정
+                    
+                    let acc = '';
+                    if (diff === 1) acc = '#';
+                    else if (diff === 2) acc = '##'; // 겹올림표
+                    else if (diff === -1) acc = 'b';
+                    else if (diff === -2) acc = 'bb'; // 겹내림표
+                    
+                    // 기준(C4)으로부터 몇 옥타브 위에 있는지 정확한 위치 계산
+                    const currentOctave = 4 + Math.floor((rootBaseIdx + expectedDegree) / 7);
+                    
+                    let note = new VF.StaveNote({ keys: [`${letterName}/${currentOctave}`], duration: "q" });
                     if (acc) note.addModifier(new VF.Accidental(acc));
                     return note;
                 });
+                // --- 변경 로직 끝 ---
 
                 const voice = new VF.Voice({ num_beats: notes.length, beat_value: 4 });
                 voice.addTickables(vfNotes);
